@@ -18,7 +18,7 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('admin', 'assistant')),
+        role TEXT NOT NULL CHECK(role IN ('admin', 'rihanna')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -56,14 +56,14 @@ async function initDatabase() {
     const adminCheck = await client.query("SELECT id FROM users WHERE username = 'admin'");
     if (adminCheck.rows.length === 0) {
       const adminHash = bcrypt.hashSync('admin123', 10);
-      const assistantHash = bcrypt.hashSync('assistant123', 10);
+      const rihannaHash = bcrypt.hashSync('rihanna123', 10);
 
       await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['admin', adminHash, 'admin']);
-      await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['assistant', assistantHash, 'assistant']);
+      await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['rihanna', rihannaHash, 'rihanna']);
 
       console.log('Utilisateurs créés:');
-      console.log('  - admin / admin123');
-      console.log('  - assistant / assistant123');
+      console.log('  - admin / admin123 (Dashboard + Data)');
+      console.log('  - rihanna / rihanna123 (Data uniquement)');
     }
 
     // Créer les créatrices par défaut
