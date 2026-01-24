@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration - Dashboard Agence LTP</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1>Agence LTP</h1>
+        <p>Administration</p>
+      </div>
+      <div class="header-right">
+        <nav class="nav-links">
+          <a href="/" class="nav-link">Dashboard</a>
+          <a href="/admin" class="nav-link active">Admin</a>
+        </nav>
+        <div class="user-info">
+          <span id="user-name">-</span>
+          <button class="logout-btn" onclick="logout()" title="Déconnexion">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Quick Stats -->
+    <div class="quick-stats" id="quick-stats">
+      <div class="stat-card">
+        <div class="label">Entrées aujourd'hui</div>
+        <div class="value" id="stat-today">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Dernière mise à jour</div>
+        <div class="value" id="stat-last-update">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total entrées</div>
+        <div class="value" id="stat-total">-</div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <!-- Formulaire de saisie -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Ajouter des données</h2>
+        </div>
+        <div class="card-body">
+          <div id="form-message" class="success-message"></div>
+          <div id="form-error" class="error-message"></div>
+
+          <form id="add-form">
+            <div class="form-group">
+              <label for="creator">Créatrice</label>
+              <select id="creator" name="creator_id" required>
+                <option value="">Sélectionner...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="date">Date</label>
+              <input type="date" id="date" name="date" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="subscribers">Abonnés</label>
+                <input type="number" id="subscribers" name="subscribers" min="0" value="0" required>
+              </div>
+
+              <div class="form-group">
+                <label for="revenue">CA (€)</label>
+                <input type="number" id="revenue" name="revenue" min="0" step="0.01" value="0" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+              Ajouter
+            </button>
+          </form>
+
+          <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">
+
+          <!-- Saisie rapide pour plusieurs jours -->
+          <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem;">Saisie rapide (même créatrice)</h3>
+          <form id="bulk-form">
+            <div class="form-group">
+              <label for="bulk-creator">Créatrice</label>
+              <select id="bulk-creator" required>
+                <option value="">Sélectionner...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="bulk-data">Données (une ligne par jour: date,subs,ca)</label>
+              <textarea id="bulk-data" rows="5" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-family: monospace; font-size: 0.8rem;" placeholder="2026-01-20,45,350.50
+2026-01-21,52,420.00
+2026-01-22,38,280.75"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">
+              Importer en lot
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Liste des entrées récentes -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Entrées récentes</h2>
+          <div class="filters" style="margin: 0;">
+            <select id="filter-creator" style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.375rem;">
+              <option value="">Toutes les créatrices</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Créatrice</th>
+                <th>Plateforme</th>
+                <th>Subs</th>
+                <th>CA</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="stats-table">
+              <tr>
+                <td colspan="6" class="loading">
+                  <div class="spinner"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="pagination-info" id="pagination-info">-</div>
+          <div class="pagination-buttons">
+            <button class="pagination-btn" id="prev-btn" disabled>Précédent</button>
+            <button class="pagination-btn" id="next-btn" disabled>Suivant</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Rapports -->
+    <div class="reports-section">
+      <div class="card">
+        <div class="card-header">
+          <h2>Générer des rapports PDF</h2>
+        </div>
+        <div class="card-body">
+          <div class="filters">
+            <div class="filter-group">
+              <label>Du</label>
+              <input type="date" id="report-start">
+            </div>
+            <div class="filter-group">
+              <label>Au</label>
+              <input type="date" id="report-end">
+            </div>
+          </div>
+
+          <div class="reports-grid" id="reports-grid">
+            <!-- Les cartes de rapport seront générées ici -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal de confirmation de suppression -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Confirmer la suppression</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer cette entrée ?</p>
+        <p style="margin-top: 0.5rem; color: #6b7280; font-size: 0.875rem;" id="delete-details"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Annuler</button>
+        <button class="btn btn-danger" id="confirm-delete-btn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal d'édition -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Modifier l'entrée</h3>
+        <button class="modal-close" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-form">
+          <input type="hidden" id="edit-id">
+          <input type="hidden" id="edit-creator-id">
+
+          <div class="form-group">
+            <label>Créatrice</label>
+            <input type="text" id="edit-creator-name" disabled style="background: #f3f4f6;">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-date">Date</label>
+            <input type="date" id="edit-date" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-subscribers">Abonnés</label>
+              <input type="number" id="edit-subscribers" min="0" required>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-revenue">CA (€)</label>
+              <input type="number" id="edit-revenue" min="0" step="0.01" required>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let creators = [];
+    let currentPage = 1;
+    const limit = 20;
+    let deleteId = null;
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      await loadCreators();
+      await loadStats();
+      setupReportDates();
+      generateReportCards();
+    });
+
+    // Vérifier l'authentification
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          window.location.href = '/login';
+          return;
+        }
+        const data = await response.json();
+        document.getElementById('user-name').textContent = data.user.username;
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Déconnexion
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    // Charger les créatrices
+    async function loadCreators() {
+      try {
+        const response = await fetch('/api/creators');
+        creators = await response.json();
+
+        const selects = ['creator', 'bulk-creator', 'filter-creator'];
+        selects.forEach(id => {
+          const select = document.getElementById(id);
+          const isFilter = id === 'filter-creator';
+
+          if (!isFilter) {
+            select.innerHTML = '<option value="">Sélectionner...</option>';
+          }
+
+          creators.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = `${c.name} ${c.platform}`;
+            select.appendChild(option);
+          });
+        });
+      } catch (error) {
+        console.error('Erreur chargement créatrices:', error);
+      }
+    }
+
+    // Charger les stats
+    async function loadStats() {
+      const filterCreator = document.getElementById('filter-creator').value;
+
+      let url = `/api/daily-stats?page=${currentPage}&limit=${limit}`;
+      if (filterCreator) url += `&creator_id=${filterCreator}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        renderTable(data.data);
+        updatePagination(data.pagination);
+        updateQuickStats(data);
+      } catch (error) {
+        console.error('Erreur chargement stats:', error);
+      }
+    }
+
+    // Afficher le tableau
+    function renderTable(stats) {
+      const tbody = document.getElementById('stats-table');
+
+      if (stats.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #6b7280;">Aucune donnée</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = stats.map(stat => `
+        <tr>
+          <td>${formatDate(stat.date)}</td>
+          <td>${stat.creator_name}</td>
+          <td><span class="badge badge-${stat.platform.toLowerCase()}">${stat.platform}</span></td>
+          <td>${stat.subscribers.toLocaleString('fr-FR')}</td>
+          <td>${stat.revenue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</td>
+          <td class="actions">
+            <button class="action-btn edit" onclick="openEditModal(${JSON.stringify(stat).replace(/"/g, '&quot;')})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="action-btn delete" onclick="openDeleteModal(${stat.id}, '${stat.creator_name} ${stat.platform}', '${stat.date}')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Pagination
+    function updatePagination(pagination) {
+      document.getElementById('pagination-info').textContent =
+        `Page ${pagination.page} sur ${pagination.pages} (${pagination.total} entrées)`;
+
+      document.getElementById('prev-btn').disabled = pagination.page <= 1;
+      document.getElementById('next-btn').disabled = pagination.page >= pagination.pages;
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      currentPage--;
+      loadStats();
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      currentPage++;
+      loadStats();
+    });
+
+    document.getElementById('filter-creator').addEventListener('change', () => {
+      currentPage = 1;
+      loadStats();
+    });
+
+    // Quick stats
+    function updateQuickStats(data) {
+      document.getElementById('stat-total').textContent = data.pagination.total.toLocaleString('fr-FR');
+
+      // Compter les entrées d'aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
+      const todayCount = data.data.filter(d => d.date === today).length;
+      document.getElementById('stat-today').textContent = todayCount;
+
+      // Dernière mise à jour
+      if (data.data.length > 0) {
+        const lastDate = data.data[0].date;
+        document.getElementById('stat-last-update').textContent = formatDate(lastDate);
+      }
+    }
+
+    // Formulaire d'ajout
+    document.getElementById('add-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        creator_id: parseInt(document.getElementById('creator').value),
+        date: document.getElementById('date').value,
+        subscribers: parseInt(document.getElementById('subscribers').value),
+        revenue: parseFloat(document.getElementById('revenue').value)
+      };
+
+      try {
+        const response = await fetch('/api/daily-stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showMessage('form-message', `Données ${data.action === 'updated' ? 'mises à jour' : 'ajoutées'} avec succès!`);
+          document.getElementById('subscribers').value = '0';
+          document.getElementById('revenue').value = '0';
+          loadStats();
+        } else {
+          showError('form-error', data.error);
+        }
+      } catch (error) {
+        showError('form-error', 'Erreur de connexion');
+      }
+    });
+
+    // Import en lot
+    document.getElementById('bulk-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const creatorId = parseInt(document.getElementById('bulk-creator').value);
+      const rawData = document.getElementById('bulk-data').value.trim();
+
+      if (!creatorId || !rawData) {
+        showError('form-error', 'Veuillez remplir tous les champs');
+        return;
+      }
+
+      const lines = rawData.split('\n');
+      const stats = [];
+
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          stats.push({
+            creator_id: creatorId,
+            date: parts[0],
+            subscribers: parseInt(parts[1]) || 0,
+            revenue: parseFloat(parts[2]) || 0
+          });
+        }
+      }
+
+      if (stats.length === 0) {
+        showError('form-error', 'Aucune donnée valide trouvée');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/daily-stats/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stats })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showMessage('form-message', `Import réussi: ${data.created} créées, ${data.updated} mises à jour`);
+          document.getElementById('bulk-data').value = '';
+          loadStats();
+        } else {
+          showError('form-error', data.error);
+        }
+      } catch (error) {
+        showError('form-error', 'Erreur de connexion');
+      }
+    });
+
+    // Modal de suppression
+    function openDeleteModal(id, name, date) {
+      deleteId = id;
+      document.getElementById('delete-details').textContent = `${name} - ${formatDate(date)}`;
+      document.getElementById('delete-modal').classList.add('active');
+    }
+
+    function closeDeleteModal() {
+      deleteId = null;
+      document.getElementById('delete-modal').classList.remove('active');
+    }
+
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+      if (!deleteId) return;
+
+      try {
+        const response = await fetch(`/api/daily-stats/${deleteId}`, { method: 'DELETE' });
+        if (response.ok) {
+          closeDeleteModal();
+          loadStats();
+        }
+      } catch (error) {
+        console.error('Erreur suppression:', error);
+      }
+    });
+
+    // Modal d'édition
+    function openEditModal(stat) {
+      document.getElementById('edit-id').value = stat.id;
+      document.getElementById('edit-creator-id').value = stat.creator_id;
+      document.getElementById('edit-creator-name').value = `${stat.creator_name} ${stat.platform}`;
+      document.getElementById('edit-date').value = stat.date;
+      document.getElementById('edit-subscribers').value = stat.subscribers;
+      document.getElementById('edit-revenue').value = stat.revenue;
+      document.getElementById('edit-modal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('active');
+    }
+
+    async function saveEdit() {
+      const formData = {
+        creator_id: parseInt(document.getElementById('edit-creator-id').value),
+        date: document.getElementById('edit-date').value,
+        subscribers: parseInt(document.getElementById('edit-subscribers').value),
+        revenue: parseFloat(document.getElementById('edit-revenue').value)
+      };
+
+      try {
+        const response = await fetch('/api/daily-stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          closeEditModal();
+          loadStats();
+        }
+      } catch (error) {
+        console.error('Erreur modification:', error);
+      }
+    }
+
+    // Rapports
+    function setupReportDates() {
+      const today = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+
+      document.getElementById('report-end').value = today.toISOString().split('T')[0];
+      document.getElementById('report-start').value = thirtyDaysAgo.toISOString().split('T')[0];
+    }
+
+    function generateReportCards() {
+      const grid = document.getElementById('reports-grid');
+
+      // Rapport agence
+      grid.innerHTML = `
+        <div class="report-card">
+          <h3>Rapport Agence</h3>
+          <p>Performance globale de toutes les créatrices</p>
+          <button class="btn btn-primary" onclick="downloadReport('agency')">
+            Télécharger PDF
+          </button>
+        </div>
+      `;
+
+      // Rapports par créatrice (groupés par nom)
+      const names = [...new Set(creators.map(c => c.name))];
+      names.forEach(name => {
+        grid.innerHTML += `
+          <div class="report-card">
+            <h3>Rapport ${name}</h3>
+            <p>Performance sur toutes les plateformes</p>
+            <button class="btn btn-secondary" onclick="downloadReport('${name}')">
+              Télécharger PDF
+            </button>
+          </div>
+        `;
+      });
+    }
+
+    function downloadReport(type) {
+      const startDate = document.getElementById('report-start').value;
+      const endDate = document.getElementById('report-end').value;
+
+      let url;
+      if (type === 'agency') {
+        url = `/api/reports/pdf-agency?start_date=${startDate}&end_date=${endDate}`;
+      } else {
+        url = `/api/reports/pdf/${type}?start_date=${startDate}&end_date=${endDate}`;
+      }
+
+      window.open(url, '_blank');
+    }
+
+    // Utilitaires
+    function formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+
+    function showMessage(id, text) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    function showError(id, text) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    // Date par défaut = aujourd'hui
+    document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  </script>
+</body>
+</html>
