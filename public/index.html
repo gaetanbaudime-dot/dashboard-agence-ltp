@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Agence LTP</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .creators-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+    .kpi-card { background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e5e7eb; }
+    .kpi-card .label { font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem; }
+    .kpi-card .value { font-size: 2rem; font-weight: 600; color: #111827; }
+    .kpi-card .subtext { font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem; }
+    .creator-card { background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e5e7eb; }
+    .creator-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .creator-name { display: flex; align-items: center; gap: 0.75rem; }
+    .creator-badge { width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.875rem; }
+    .creator-badge.georgina-of { background: #93C5FD; }
+    .creator-badge.georgina-mym { background: #000; }
+    .creator-badge.jade-of { background: #93C5FD; }
+    .creator-badge.jade-mym { background: #000; }
+    .focus-badge { padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+    .focus-marketing { background: #fef3c7; color: #d97706; }
+    .focus-chatting { background: #dbeafe; color: #2563eb; }
+    .focus-scale { background: #d1fae5; color: #059669; }
+    .creator-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+    .creator-stat .label { font-size: 0.75rem; color: #9ca3af; }
+    .creator-stat .value { font-size: 1.25rem; font-weight: 600; }
+    .progress-bar { height: 0.5rem; background: #f3f4f6; border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 9999px; transition: width 0.5s; }
+    .progress-fill.marketing { background: #f59e0b; }
+    .progress-fill.chatting { background: #3b82f6; }
+    .progress-fill.scale { background: #10b981; }
+    .chart-card { background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e5e7eb; }
+    .chart-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+    .chart-container { height: 300px; }
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+      .creators-grid { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1>Agency Dashboard</h1>
+        <p>Performance overview</p>
+      </div>
+      <div class="header-right">
+        <nav class="nav-links">
+          <a href="/" class="nav-link active">Dashboard</a>
+          <a href="/admin" class="nav-link">Admin</a>
+        </nav>
+        <div class="date-range">
+          <button class="date-btn" data-days="7">7j</button>
+          <button class="date-btn active" data-days="30">30j</button>
+          <button class="date-btn" data-days="60">60j</button>
+        </div>
+        <div class="user-info">
+          <span id="user-name">-</span>
+          <button class="logout-btn" onclick="logout()" title="Déconnexion">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- KPIs -->
+    <div class="dashboard-grid" id="kpis">
+      <div class="kpi-card">
+        <div class="label">Fans</div>
+        <div class="value" id="kpi-subs">-</div>
+        <div class="subtext" id="kpi-subs-daily">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Chiffre d'Affaires</div>
+        <div class="value" id="kpi-ca">-</div>
+        <div class="subtext" id="kpi-ca-daily">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">LTV Moyenne</div>
+        <div class="value" id="kpi-ltv">-</div>
+        <div class="subtext">CA ÷ Subs</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Profit Agence</div>
+        <div class="value" id="kpi-profit">-</div>
+        <div class="subtext" id="kpi-profit-detail">-</div>
+      </div>
+    </div>
+
+    <!-- Créatrices -->
+    <div class="creators-grid" id="creators-grid"></div>
+
+    <!-- Graphiques -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Évolution du CA (30 derniers jours)</h3>
+        <div class="chart-container">
+          <canvas id="ca-chart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Répartition CA</h3>
+        <div class="chart-container">
+          <canvas id="pie-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Évolution des Fans (30 derniers jours)</h3>
+      <div class="chart-container">
+        <canvas id="subs-chart"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <footer style="border-top: 1px solid #e5e7eb; margin-top: 2rem; padding: 1.5rem; text-align: center; color: #9ca3af; font-size: 0.875rem;">
+    Dashboard Agence LTP • <span id="last-date">-</span>
+  </footer>
+
+  <script>
+    let rawData = {};
+    let dateRange = 30;
+    let caChart, pieChart, subsChart;
+    const COLORS = {
+      "Georgina OF": "#000000",
+      "Georgina MYM": "#666666",
+      "Jade OF": "#3B82F6",
+      "Jade MYM": "#93C5FD"
+    };
+    const TARGET_SUBS = 800;
+    const TARGET_LTV = 15;
+
+    // Init
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      await loadData();
+      setupDateButtons();
+    });
+
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          window.location.href = '/login';
+          return;
+        }
+        const data = await response.json();
+        document.getElementById('user-name').textContent = data.user.username;
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch('/api/stats?days=90');
+        if (response.ok) {
+          rawData = await response.json();
+          updateDashboard();
+        }
+      } catch (e) {
+        console.error('Erreur chargement données:', e);
+      }
+    }
+
+    function setupDateButtons() {
+      document.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          dateRange = parseInt(btn.dataset.days);
+          updateDashboard();
+        });
+      });
+    }
+
+    function getLastDate() {
+      const allDates = Object.values(rawData).flatMap(arr => arr.map(d => d.date));
+      return allDates.length ? new Date(Math.max(...allDates.map(d => new Date(d)))) : new Date();
+    }
+
+    function getFilteredData(creatorName, days) {
+      const data = rawData[creatorName] || [];
+      const lastDate = getLastDate();
+      const cutoff = new Date(lastDate);
+      cutoff.setDate(cutoff.getDate() - days + 1);
+      return data.filter(d => new Date(d.date) >= cutoff && new Date(d.date) <= lastDate);
+    }
+
+    function updateDashboard() {
+      const lastDate = getLastDate();
+      document.getElementById('last-date').textContent = `Données jusqu'au ${lastDate.toLocaleDateString('fr-FR')}`;
+
+      // Calculer les stats globales
+      let totalSubs = 0, totalCA = 0;
+      let georginaCA = 0, jadeCA = 0;
+
+      Object.keys(rawData).forEach(creator => {
+        const data = getFilteredData(creator, dateRange);
+        const subs = data.reduce((s, d) => s + d.sub, 0);
+        const ca = data.reduce((s, d) => s + d.ca, 0);
+        totalSubs += subs;
+        totalCA += ca;
+        if (creator.includes('Georgina')) georginaCA += ca;
+        if (creator.includes('Jade')) jadeCA += ca;
+      });
+
+      const ltv = totalSubs > 0 ? totalCA / totalSubs : 0;
+      const georginaProfit = georginaCA * 0.50;
+      const jadeProfit = jadeCA * 0.60;
+      const profit = georginaProfit + jadeProfit;
+
+      // Mettre à jour les KPIs
+      document.getElementById('kpi-subs').textContent = totalSubs.toLocaleString('fr-FR');
+      document.getElementById('kpi-subs-daily').textContent = `${(totalSubs / dateRange).toFixed(0)}/jour`;
+      document.getElementById('kpi-ca').textContent = `${totalCA.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €`;
+      document.getElementById('kpi-ca-daily').textContent = `${(totalCA / dateRange).toFixed(0)} €/jour`;
+      document.getElementById('kpi-ltv').textContent = `${ltv.toFixed(2)} €`;
+      document.getElementById('kpi-profit').textContent = `${profit.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €`;
+      const georginaPct = profit > 0 ? Math.round((georginaProfit / profit) * 100) : 0;
+      const jadePct = profit > 0 ? Math.round((jadeProfit / profit) * 100) : 0;
+      document.getElementById('kpi-profit-detail').textContent = `Georgina ${georginaProfit.toLocaleString('fr-FR', {maximumFractionDigits: 0})} € (${georginaPct}%) • Jade ${jadeProfit.toLocaleString('fr-FR', {maximumFractionDigits: 0})} € (${jadePct}%)`;
+
+      // Mettre à jour les cartes créatrices
+      updateCreatorCards();
+
+      // Mettre à jour les graphiques
+      updateCharts();
+    }
+
+    function updateCreatorCards() {
+      const grid = document.getElementById('creators-grid');
+      grid.innerHTML = '';
+
+      Object.keys(rawData).forEach(creator => {
+        const data = getFilteredData(creator, 30);
+        const subs = data.reduce((s, d) => s + d.sub, 0);
+        const ca = data.reduce((s, d) => s + d.ca, 0);
+        const ltv = subs > 0 ? ca / subs : 0;
+
+        const platform = creator.includes('OF') ? 'OF' : 'MYM';
+        const name = creator.replace(' OF', '').replace(' MYM', '');
+        const badgeClass = name.toLowerCase() + '-' + platform.toLowerCase();
+
+        let focus, focusClass, progressValue, progressLabel;
+        if (subs < TARGET_SUBS) {
+          focus = 'Focus Marketing';
+          focusClass = 'marketing';
+          progressValue = Math.min((subs / TARGET_SUBS) * 100, 100);
+          progressLabel = `${subs} / ${TARGET_SUBS} subs`;
+        } else if (ltv < TARGET_LTV) {
+          focus = 'Focus Chatting';
+          focusClass = 'chatting';
+          progressValue = Math.min((ltv / TARGET_LTV) * 100, 100);
+          progressLabel = `${ltv.toFixed(2)}€ / ${TARGET_LTV}€ LTV`;
+        } else {
+          focus = 'Focus Scale';
+          focusClass = 'scale';
+          progressValue = 100;
+          progressLabel = 'Objectifs atteints';
+        }
+
+        grid.innerHTML += `
+          <div class="creator-card">
+            <div class="creator-header">
+              <div class="creator-name">
+                <div class="creator-badge ${badgeClass}">${platform}</div>
+                <div>
+                  <strong>${name}</strong>
+                  <div style="font-size: 0.75rem; color: #9ca3af;">${platform === 'OF' ? 'OnlyFans' : 'MYM.fans'}</div>
+                </div>
+              </div>
+              <span class="focus-badge focus-${focusClass}">${focus}</span>
+            </div>
+            <div class="creator-stats">
+              <div class="creator-stat">
+                <div class="label">Subs L30</div>
+                <div class="value">${subs.toLocaleString('fr-FR')}</div>
+              </div>
+              <div class="creator-stat">
+                <div class="label">CA L30</div>
+                <div class="value">${ca.toLocaleString('fr-FR', {maximumFractionDigits: 0})}€</div>
+              </div>
+              <div class="creator-stat">
+                <div class="label">LTV L30</div>
+                <div class="value">${ltv.toFixed(2)}€</div>
+              </div>
+            </div>
+            <div style="font-size: 0.75rem; display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: #6b7280;">Objectif</span>
+              <span style="color: #374151; font-weight: 500;">${progressLabel}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill ${focusClass}" style="width: ${progressValue}%"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function updateCharts() {
+      const lastDate = getLastDate();
+      const labels = [];
+      const datasets = {};
+
+      // Générer les 30 derniers jours
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(lastDate);
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+      }
+
+      // Préparer les données par créatrice
+      Object.keys(rawData).forEach(creator => {
+        datasets[creator] = { ca: [], subs: [] };
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date(lastDate);
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split('T')[0];
+          const found = rawData[creator].find(r => r.date === dateStr);
+          datasets[creator].ca.push(found ? found.ca : 0);
+          datasets[creator].subs.push(found ? found.sub : 0);
+        }
+      });
+
+      // Chart CA
+      if (caChart) caChart.destroy();
+      caChart = new Chart(document.getElementById('ca-chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: Object.keys(rawData).map(creator => ({
+            label: creator,
+            data: datasets[creator].ca,
+            borderColor: COLORS[creator],
+            backgroundColor: 'transparent',
+            tension: 0.3
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // Chart Subs
+      if (subsChart) subsChart.destroy();
+      subsChart = new Chart(document.getElementById('subs-chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: Object.keys(rawData).map(creator => ({
+            label: creator,
+            data: datasets[creator].subs,
+            borderColor: COLORS[creator],
+            backgroundColor: COLORS[creator] + '20',
+            fill: true,
+            tension: 0.3
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // Pie Chart
+      const pieData = Object.keys(rawData).map(creator => {
+        const data = getFilteredData(creator, 30);
+        return data.reduce((s, d) => s + d.ca, 0);
+      });
+
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(document.getElementById('pie-chart'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(rawData),
+          datasets: [{
+            data: pieData,
+            backgroundColor: Object.keys(rawData).map(c => COLORS[c])
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
