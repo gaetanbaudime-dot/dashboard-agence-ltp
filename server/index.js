@@ -36,10 +36,10 @@ app.use(session({
 // Servir les fichiers statiques
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Routes API
+// Routes API - SANS AUTH
 app.use('/api/auth', authRouter);
-app.use('/api', requireAuth, dataRouter);
-app.use('/api/reports', requireAuth, reportsRouter);
+app.use('/api', dataRouter);
+app.use('/api/reports', reportsRouter);
 
 // Routes des pages - SANS LOGIN
 app.get('/login', (req, res) => {
