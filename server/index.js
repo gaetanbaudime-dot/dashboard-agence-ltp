@@ -41,48 +41,23 @@ app.use('/api/auth', authRouter);
 app.use('/api', requireAuth, dataRouter);
 app.use('/api/reports', requireAuth, reportsRouter);
 
-// Routes des pages
+// Routes des pages - SANS LOGIN
 app.get('/login', (req, res) => {
-  if (req.session.user) {
-    // Rediriger selon le rôle
-    if (req.session.user.role === 'admin') {
-      return res.redirect('/');
-    } else {
-      return res.redirect('/data');
-    }
-  }
-  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+  res.redirect('/');
 });
 
-// Page Data - accessible à tous les utilisateurs connectés
+// Page Data - accessible à tous
 app.get('/data', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
   res.sendFile(path.join(__dirname, '..', 'public', 'data.html'));
 });
 
-// Page Admin - accessible uniquement aux admins (affiche Data + fonctions avancées)
+// Page Admin
 app.get('/admin', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
-  // Les assistants sont redirigés vers /data
-  if (req.session.user.role !== 'admin') {
-    return res.redirect('/data');
-  }
   res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
 
-// Dashboard - accessible uniquement aux admins
+// Dashboard
 app.get('/', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
-  // Les assistants sont redirigés vers /data
-  if (req.session.user.role !== 'admin') {
-    return res.redirect('/data');
-  }
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
