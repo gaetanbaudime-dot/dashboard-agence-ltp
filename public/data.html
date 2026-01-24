@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saisie des données - Dashboard Agence LTP</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .data-container { max-width: 600px; margin: 0 auto; padding: 2rem 1rem; }
+    .welcome-card { background: white; border-radius: 1rem; padding: 2rem; border: 1px solid #e5e7eb; margin-bottom: 1.5rem; text-align: center; }
+    .welcome-card h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #111827; }
+    .welcome-card p { color: #6b7280; }
+    .form-card { background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e5e7eb; margin-bottom: 1.5rem; }
+    .form-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #111827; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem; }
+    .form-group select, .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-size: 1rem; }
+    .form-group select:focus, .form-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .currency-toggle { display: flex; background: #f3f4f6; border-radius: 0.5rem; padding: 0.25rem; margin-bottom: 0.5rem; }
+    .currency-btn { flex: 1; padding: 0.5rem; border: none; background: transparent; border-radius: 0.375rem; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .currency-btn.active { background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); color: #111827; }
+    .currency-btn:not(.active) { color: #6b7280; }
+    .exchange-rate { font-size: 0.75rem; color: #9ca3af; text-align: right; margin-top: 0.25rem; }
+    .btn-submit { width: 100%; padding: 0.875rem; background: #111827; color: white; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .btn-submit:hover { background: #374151; }
+    .btn-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+    .success-message { background: #d1fae5; color: #065f46; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none; }
+    .error-message { background: #fee2e2; color: #991b1b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none; }
+    .recent-entries { background: white; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e5e7eb; }
+    .recent-entries h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #111827; }
+    .entry-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; }
+    .entry-item:last-child { border-bottom: none; }
+    .entry-info { display: flex; align-items: center; gap: 0.75rem; }
+    .entry-badge { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.75rem; }
+    .entry-badge.of { background: #93C5FD; }
+    .entry-badge.mym { background: #000; }
+    .entry-details { font-size: 0.875rem; }
+    .entry-details .name { font-weight: 500; color: #111827; }
+    .entry-details .date { color: #6b7280; font-size: 0.75rem; }
+    .entry-stats { text-align: right; }
+    .entry-stats .subs { font-weight: 600; color: #111827; }
+    .entry-stats .ca { color: #059669; font-size: 0.875rem; }
+    .header-simple { background: white; border-bottom: 1px solid #e5e7eb; padding: 1rem; }
+    .header-simple-content { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .header-simple h1 { font-size: 1.25rem; font-weight: 600; color: #111827; }
+    .logout-link { color: #6b7280; text-decoration: none; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
+    .logout-link:hover { color: #111827; }
+    .empty-state { text-align: center; padding: 2rem; color: #9ca3af; }
+  </style>
+</head>
+<body style="background: #f9fafb;">
+  <header class="header-simple">
+    <div class="header-simple-content">
+      <h1>Agence LTP</h1>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span id="user-name" style="color: #6b7280; font-size: 0.875rem;">-</span>
+        <a href="#" class="logout-link" onclick="logout(); return false;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Déconnexion
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="data-container">
+    <div class="welcome-card">
+      <h2>Saisie des statistiques</h2>
+      <p>Entrez les données quotidiennes des créatrices</p>
+    </div>
+
+    <div class="form-card">
+      <h3>Nouvelle entrée</h3>
+
+      <div id="success-message" class="success-message"></div>
+      <div id="error-message" class="error-message"></div>
+
+      <form id="data-form">
+        <div class="form-group">
+          <label for="creator">Créatrice</label>
+          <select id="creator" required>
+            <option value="">Sélectionner une créatrice...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="date">Date</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+          <label for="subscribers">Nouveaux abonnés</label>
+          <input type="number" id="subscribers" min="0" value="0" required>
+        </div>
+
+        <div class="form-group">
+          <label>Chiffre d'affaires</label>
+          <div class="currency-toggle">
+            <button type="button" class="currency-btn active" data-currency="EUR">EUR (€)</button>
+            <button type="button" class="currency-btn" data-currency="USD">USD ($)</button>
+          </div>
+          <input type="number" id="revenue" min="0" step="0.01" value="0" required>
+          <div class="exchange-rate" id="exchange-rate" style="display: none;">
+            Taux: 1 USD = <span id="rate-value">0.92</span> EUR | Converti: <span id="converted-value">0.00</span> €
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submit-btn">
+          Enregistrer
+        </button>
+      </form>
+    </div>
+
+    <div class="recent-entries">
+      <h3>Dernières entrées</h3>
+      <div id="entries-list">
+        <div class="empty-state">Chargement...</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let creators = [];
+    let currentCurrency = 'EUR';
+    let exchangeRate = 0.92; // Taux par défaut
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
+      await loadCreators();
+      await loadRecentEntries();
+      await fetchExchangeRate();
+      setupForm();
+
+      // Date par défaut = aujourd'hui
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    });
+
+    // Vérifier l'authentification
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          window.location.href = '/login';
+          return;
+        }
+        const data = await response.json();
+        document.getElementById('user-name').textContent = data.user.username;
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Déconnexion
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    // Charger les créatrices
+    async function loadCreators() {
+      try {
+        const response = await fetch('/api/creators');
+        creators = await response.json();
+
+        const select = document.getElementById('creator');
+        select.innerHTML = '<option value="">Sélectionner une créatrice...</option>';
+
+        creators.forEach(c => {
+          const option = document.createElement('option');
+          option.value = c.id;
+          option.textContent = `${c.name} ${c.platform}`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Erreur chargement créatrices:', error);
+      }
+    }
+
+    // Charger les entrées récentes
+    async function loadRecentEntries() {
+      try {
+        const response = await fetch('/api/daily-stats?limit=10');
+        const data = await response.json();
+
+        const container = document.getElementById('entries-list');
+
+        if (data.data.length === 0) {
+          container.innerHTML = '<div class="empty-state">Aucune entrée pour le moment</div>';
+          return;
+        }
+
+        container.innerHTML = data.data.map(entry => `
+          <div class="entry-item">
+            <div class="entry-info">
+              <div class="entry-badge ${entry.platform.toLowerCase()}">${entry.platform}</div>
+              <div class="entry-details">
+                <div class="name">${entry.creator_name}</div>
+                <div class="date">${formatDate(entry.date)}</div>
+              </div>
+            </div>
+            <div class="entry-stats">
+              <div class="subs">${entry.subscribers} subs</div>
+              <div class="ca">${entry.revenue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Erreur chargement entrées:', error);
+      }
+    }
+
+    // Récupérer le taux de change EUR/USD
+    async function fetchExchangeRate() {
+      try {
+        // API gratuite pour le taux de change
+        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await response.json();
+        exchangeRate = data.rates.EUR;
+        document.getElementById('rate-value').textContent = exchangeRate.toFixed(4);
+      } catch (error) {
+        console.error('Erreur récupération taux de change:', error);
+        // Garder le taux par défaut
+      }
+    }
+
+    // Setup formulaire
+    function setupForm() {
+      // Toggle devise
+      document.querySelectorAll('.currency-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCurrency = btn.dataset.currency;
+
+          const exchangeDiv = document.getElementById('exchange-rate');
+          if (currentCurrency === 'USD') {
+            exchangeDiv.style.display = 'block';
+            updateConversion();
+          } else {
+            exchangeDiv.style.display = 'none';
+          }
+        });
+      });
+
+      // Mise à jour conversion en temps réel
+      document.getElementById('revenue').addEventListener('input', updateConversion);
+
+      // Soumission formulaire
+      document.getElementById('data-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enregistrement...';
+
+        let revenue = parseFloat(document.getElementById('revenue').value);
+
+        // Convertir si en USD
+        if (currentCurrency === 'USD') {
+          revenue = revenue * exchangeRate;
+        }
+
+        const formData = {
+          creator_id: parseInt(document.getElementById('creator').value),
+          date: document.getElementById('date').value,
+          subscribers: parseInt(document.getElementById('subscribers').value),
+          revenue: revenue
+        };
+
+        try {
+          const response = await fetch('/api/daily-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showSuccess(data.action === 'updated' ? 'Données mises à jour !' : 'Données enregistrées !');
+            document.getElementById('subscribers').value = '0';
+            document.getElementById('revenue').value = '0';
+            await loadRecentEntries();
+          } else {
+            showError(data.error || 'Erreur lors de l\'enregistrement');
+          }
+        } catch (error) {
+          showError('Erreur de connexion');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enregistrer';
+        }
+      });
+    }
+
+    // Mise à jour conversion
+    function updateConversion() {
+      const usdValue = parseFloat(document.getElementById('revenue').value) || 0;
+      const eurValue = usdValue * exchangeRate;
+      document.getElementById('converted-value').textContent = eurValue.toFixed(2);
+    }
+
+    // Afficher message succès
+    function showSuccess(message) {
+      const el = document.getElementById('success-message');
+      el.textContent = message;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // Afficher message erreur
+    function showError(message) {
+      const el = document.getElementById('error-message');
+      el.textContent = message;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    // Formater date
+    function formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+  </script>
+</body>
+</html>

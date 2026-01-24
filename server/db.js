@@ -56,14 +56,22 @@ async function initDatabase() {
     const adminCheck = await client.query("SELECT id FROM users WHERE username = 'admin'");
     if (adminCheck.rows.length === 0) {
       const adminHash = bcrypt.hashSync('admin123', 10);
-      const assistantHash = bcrypt.hashSync('assistant123', 10);
+      const rihannaHash = bcrypt.hashSync('rihanna123', 10);
 
       await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['admin', adminHash, 'admin']);
-      await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['assistant', assistantHash, 'assistant']);
+      await client.query("INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)", ['rihanna', rihannaHash, 'assistant']);
 
       console.log('Utilisateurs créés:');
-      console.log('  - admin / admin123');
-      console.log('  - assistant / assistant123');
+      console.log('  - admin / admin123 (Dashboard + Data)');
+      console.log('  - rihanna / rihanna123 (Data uniquement)');
+    }
+
+    // Mettre à jour le compte assistant existant vers rihanna si nécessaire
+    const assistantCheck = await client.query("SELECT id FROM users WHERE username = 'assistant'");
+    if (assistantCheck.rows.length > 0) {
+      const rihannaHash = bcrypt.hashSync('rihanna123', 10);
+      await client.query("UPDATE users SET username = 'rihanna', password_hash = $1 WHERE username = 'assistant'", [rihannaHash]);
+      console.log('Compte assistant renommé en rihanna');
     }
 
     // Créer les créatrices par défaut

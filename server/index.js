@@ -42,21 +42,44 @@ app.use('/api/reports', requireAuth, reportsRouter);
 // Routes des pages
 app.get('/login', (req, res) => {
   if (req.session.user) {
-    return res.redirect('/');
+    // Rediriger selon le rôle
+    if (req.session.user.role === 'admin') {
+      return res.redirect('/');
+    } else {
+      return res.redirect('/data');
+    }
   }
   res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
 
+// Page Data - accessible à tous les utilisateurs connectés
+app.get('/data', (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  res.sendFile(path.join(__dirname, '..', 'public', 'data.html'));
+});
+
+// Page Admin - accessible uniquement aux admins (affiche Data + fonctions avancées)
 app.get('/admin', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
   }
+  // Les assistants sont redirigés vers /data
+  if (req.session.user.role !== 'admin') {
+    return res.redirect('/data');
+  }
   res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
 
+// Dashboard - accessible uniquement aux admins
 app.get('/', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
+  }
+  // Les assistants sont redirigés vers /data
+  if (req.session.user.role !== 'admin') {
+    return res.redirect('/data');
   }
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
@@ -81,12 +104,12 @@ async function startServer() {
       console.log('');
       console.log('  Pages disponibles:');
       console.log(`    - Dashboard: http://localhost:${PORT}/`);
-      console.log(`    - Admin:     http://localhost:${PORT}/admin`);
+      console.log(`    - Data:      http://localhost:${PORT}/data`);
       console.log(`    - Login:     http://localhost:${PORT}/login`);
       console.log('');
-      console.log('  Identifiants par défaut:');
-      console.log('    - Admin:     admin / admin123');
-      console.log('    - Assistant: assistant / assistant123');
+      console.log('  Identifiants:');
+      console.log('    - Admin:    admin / admin123 (Dashboard + Data)');
+      console.log('    - Rihanna:  rihanna / rihanna123 (Data uniquement)');
       console.log('='.repeat(50));
       console.log('');
     });
