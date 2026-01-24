@@ -5,32 +5,37 @@ const { queryOne } = require('../db');
 const router = express.Router();
 
 // Login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username et password requis' });
   }
 
-  const user = queryOne('SELECT * FROM users WHERE username = ?', [username]);
+  try {
+    const user = await queryOne('SELECT * FROM users WHERE username = ?', [username]);
 
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: 'Identifiants incorrects' });
-  }
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Identifiants incorrects' });
+    }
 
-  req.session.user = {
-    id: user.id,
-    username: user.username,
-    role: user.role
-  };
-
-  res.json({
-    success: true,
-    user: {
+    req.session.user = {
+      id: user.id,
       username: user.username,
       role: user.role
-    }
-  });
+    };
+
+    res.json({
+      success: true,
+      user: {
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Erreur login:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // Logout
