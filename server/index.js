@@ -26,9 +26,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: !!process.env.DATABASE_URL,
+    secure: false,
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000 // 24 heures
   }
 }));
