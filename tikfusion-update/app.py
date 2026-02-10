@@ -189,13 +189,83 @@ st.markdown("""
         background: #2C2C2E;
         border: 1px solid #3A3A3C;
         border-radius: 8px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        padding: 4px 10px;
     }
 
     /* Expander */
     .streamlit-expanderHeader {
         background: #1C1C1E;
         border-radius: 12px;
+    }
+
+    /* Compact video preview */
+    .compact-video video,
+    .compact-video iframe {
+        max-height: 180px !important;
+        border-radius: 10px;
+    }
+
+    /* Compact variation rows */
+    .var-row-compact {
+        background: #1C1C1E;
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin: 4px 0;
+        border: 1px solid #2C2C2E;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .var-row-compact:hover { background: #2C2C2E; }
+
+    .var-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #F5F5F7;
+        min-width: 36px;
+    }
+    .var-tags {
+        flex: 1;
+        line-height: 1.6;
+    }
+    .var-score {
+        min-width: 50px;
+        text-align: center;
+    }
+
+    /* Smaller tags */
+    .tag-sm {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 5px;
+        font-size: 0.65rem;
+        font-weight: 500;
+        margin: 1px 1px;
+    }
+
+    /* Mini video previews in expander */
+    .mini-preview video,
+    .mini-preview iframe {
+        max-height: 120px !important;
+        border-radius: 8px;
+    }
+
+    /* Compact header */
+    .header-bar {
+        padding: 12px 0 8px 0 !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Tighter metrics */
+    [data-testid="stMetric"] {
+        padding: 10px !important;
+    }
+
+    /* Compact config section */
+    .config-section h4 {
+        margin-top: 8px !important;
+        margin-bottom: 4px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -312,6 +382,34 @@ def format_modifications(mods):
     return " ".join(tags) if tags else '<span style="color:#48484A">—</span>'
 
 
+def format_modifications_compact(mods):
+    """Formate les modifications en petits tags compacts (2 lignes)"""
+    tags = []
+    if mods.get("hflip"):
+        tags.append('<span class="tag-sm tag-mirror">🪞 Miroir</span>')
+    speed = mods.get("speed", 1.0)
+    if abs(speed - 1.0) > 0.005:
+        tags.append(f'<span class="tag-sm tag-speed">🔄 x{speed:.2f}</span>')
+    hue = mods.get("hue_shift", 0)
+    if abs(hue) > 0:
+        tags.append(f'<span class="tag-sm tag-hue">🎨 {hue:+d}°</span>')
+    crop = mods.get("crop_percent", 0)
+    if crop > 0.1:
+        tags.append(f'<span class="tag-sm tag-crop">✂️ {crop:.1f}%</span>')
+    zoom = mods.get("zoom", 1.0)
+    if zoom > 1.005:
+        tags.append(f'<span class="tag-sm tag-zoom">🔍 {(zoom-1)*100:.1f}%</span>')
+    noise = mods.get("noise", 0)
+    if noise > 0:
+        tags.append(f'<span class="tag-sm tag-noise">📡 N{noise:.0f}</span>')
+    pitch = mods.get("pitch_semitones", 0)
+    if abs(pitch) > 0.05:
+        tags.append(f'<span class="tag-sm tag-pitch">🎵 {pitch:+.1f}st</span>')
+    if mods.get("metadata_randomized"):
+        tags.append('<span class="tag-sm tag-meta">🏷️ Meta</span>')
+    return " ".join(tags) if tags else '<span style="color:#48484A;font-size:0.7rem">—</span>'
+
+
 def get_uniqueness_badge(score):
     """Retourne la classe CSS du badge selon le score d'unicité.
     ≥60% = safe (vert) — passe TikTok + Instagram
@@ -343,11 +441,11 @@ def main():
     """, unsafe_allow_html=True)
 
     # ============ TABS ============
-    tab1, tab2, tab3, tab4 = st.tabs(["📤 Single", "📦 Bulk", "📊 Stats", "⚙️ Config"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📤 Single", "📦 Bulk", "📊 Statistiques", "⚙️ Configuration"])
 
     # ========== TAB 4: CONFIG (read first for variables) ==========
     with tab4:
-        st.markdown("### ⚙️ Configuration")
+        st.markdown("### ⚙️ Configuration générale")
         c1, c2 = st.columns(2)
         with c1:
             output_dir = st.text_input("📁 Dossier de sortie", value="outputs", key="cfg_output")
@@ -529,23 +627,24 @@ def main():
 
     # ========== TAB 1: SINGLE UPLOAD ==========
     with tab1:
-        col_upload, col_results = st.columns([1, 2])
+        col_upload, col_results = st.columns([1, 3])
 
         with col_upload:
             uploaded = st.file_uploader("📹 Vidéo source", type=['mp4', 'mov', 'avi'], key="single")
 
             if uploaded:
+                st.markdown('<div class="compact-video">', unsafe_allow_html=True)
                 st.video(uploaded)
-                num_vars = st.slider("Nombre de variations", 1, 15, 5, key="single_vars")
+                st.markdown('</div>', unsafe_allow_html=True)
+                num_vars = st.slider("Variations", 1, 15, 5, key="single_vars")
 
-                if st.button("Générer les variations", type="primary", key="single_btn"):
+                if st.button("Générer", type="primary", key="single_btn", use_container_width=True):
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
                         tmp.write(uploaded.read())
                         original_path = tmp.name
 
                     progress = st.progress(0)
                     status = st.empty()
-                    results_container = st.empty()
 
                     try:
                         from uniquifier import uniquify_video_ffmpeg
@@ -570,13 +669,12 @@ def main():
 
                             progress.progress((i + 1) / num_vars)
 
-                            # Show partial results as they arrive
                             st.session_state['single_analyses'] = analyses
                             st.session_state['single_folder'] = folder_name
 
                         status.empty()
                         progress.empty()
-                        st.success(f"✅ {len(analyses)} variations générées")
+                        st.success(f"✅ {len(analyses)} variations")
 
                         os.unlink(original_path)
                     except Exception as e:
@@ -586,37 +684,46 @@ def main():
             if 'single_analyses' in st.session_state:
                 analyses = st.session_state['single_analyses']
 
-                st.markdown(f"<div class='folder-badge'>📁 outputs/{st.session_state.get('single_folder', '')}/</div>", unsafe_allow_html=True)
+                # Header row: folder badge + legend inline
+                h1, h2 = st.columns([1, 2])
+                h1.markdown(f"<div class='folder-badge'>📁 {st.session_state.get('single_folder', '')}/</div>", unsafe_allow_html=True)
+                h2.markdown(LEGEND_HTML, unsafe_allow_html=True)
 
-                st.markdown(LEGEND_HTML, unsafe_allow_html=True)
-
-                for a in analyses:
-                    cols = st.columns([1, 3, 1, 1])
-                    cols[0].markdown(f"**{a['name']}**")
-                    cols[1].markdown(format_modifications(a.get('modifications', {})), unsafe_allow_html=True)
+                # Compact variation rows
+                for idx, a in enumerate(analyses):
                     u = a['uniqueness']
                     badge = get_uniqueness_badge(u)
-                    cols[2].markdown(f"<span class='{badge}'>{u:.0f}%</span>", unsafe_allow_html=True)
+                    mods_html = format_modifications_compact(a.get('modifications', {}))
+                    st.markdown(f"""<div class="var-row-compact">
+                        <span class="var-name">{a['name']}</span>
+                        <span class="var-tags">{mods_html}</span>
+                        <span class="var-score"><span class="{badge}">{u:.0f}%</span></span>
+                    </div>""", unsafe_allow_html=True)
+                    # Download button (Streamlit native - must be outside HTML)
                     output_path = a.get('output_path', '')
                     if output_path and os.path.exists(output_path):
                         with open(output_path, "rb") as f:
-                            cols[3].download_button("⬇️", f.read(), file_name=Path(output_path).name, mime="video/mp4", key=f"dl_{a['name']}")
+                            st.download_button(f"⬇️ {a['name']}.mp4", f.read(), file_name=Path(output_path).name, mime="video/mp4", key=f"dl_{a['name']}")
 
-                # Video previews in a separate expandable section
-                with st.expander("▶️ Previews vidéo", expanded=False):
-                    for a in analyses:
+                # Mini video previews
+                with st.expander("▶️ Aperçus vidéo", expanded=False):
+                    prev_cols = st.columns(3)
+                    for idx, a in enumerate(analyses):
                         output_path = a.get('output_path', '')
                         if output_path and os.path.exists(output_path):
-                            st.caption(a['name'])
-                            st.video(output_path, format="video/mp4")
+                            with prev_cols[idx % 3]:
+                                st.caption(a['name'])
+                                st.markdown('<div class="mini-preview">', unsafe_allow_html=True)
+                                st.video(output_path, format="video/mp4")
+                                st.markdown('</div>', unsafe_allow_html=True)
 
     # ========== TAB 2: BULK UPLOAD ==========
     with tab2:
-        col_upload, col_results = st.columns([1, 1])
+        col_upload, col_results = st.columns([1, 2])
 
         with col_upload:
             uploaded_files = st.file_uploader(
-                "📹 Sélectionne plusieurs vidéos",
+                "📹 Plusieurs vidéos",
                 type=['mp4', 'mov', 'avi'],
                 accept_multiple_files=True,
                 key="bulk"
@@ -624,21 +731,21 @@ def main():
 
             if uploaded_files:
                 if len(uploaded_files) > 10:
-                    st.warning("⚠️ Maximum 10 vidéos. Seules les 10 premières seront traitées.")
+                    st.warning("⚠️ Max 10 vidéos.")
                     uploaded_files = uploaded_files[:10]
-                st.success(f"📁 {len(uploaded_files)} vidéos sélectionnées")
+                st.success(f"{len(uploaded_files)} vidéos")
 
-                for f in uploaded_files[:5]:
-                    st.text(f"  📹 {f.name}")
-                if len(uploaded_files) > 5:
-                    st.text(f"  ... +{len(uploaded_files) - 5} autres")
+                for f in uploaded_files[:3]:
+                    st.caption(f"📹 {f.name}")
+                if len(uploaded_files) > 3:
+                    st.caption(f"... +{len(uploaded_files) - 3} autres")
 
-                vars_per_video = st.slider("Variations par vidéo", 1, 10, 3, key="bulk_vars")
+                vars_per_video = st.slider("Var / vidéo", 1, 10, 3, key="bulk_vars")
 
                 total = len(uploaded_files) * vars_per_video
-                st.warning(f"⚠️ Total : **{total} vidéos** seront générées")
+                st.info(f"**{total} vidéos** au total")
 
-                if st.button("Lancer le traitement", type="primary", key="bulk_btn"):
+                if st.button("Lancer", type="primary", key="bulk_btn", use_container_width=True):
                     bulk_folder = get_dated_folder_name() + " - BULK"
                     bulk_path = os.path.join(output_dir, bulk_folder)
                     os.makedirs(bulk_path, exist_ok=True)
@@ -688,7 +795,7 @@ def main():
 
                         status.empty()
                         total_success = sum(r['success_count'] for r in all_results)
-                        st.success(f"✅ {total_success} vidéos générées")
+                        st.success(f"✅ {total_success} vidéos")
 
                     except Exception as e:
                         st.error(f"Erreur: {e}")
@@ -697,49 +804,53 @@ def main():
             if 'bulk_results' in st.session_state:
                 results = st.session_state['bulk_results']
                 bulk_folder = st.session_state.get('bulk_folder', '')
-                bulk_path = st.session_state.get('bulk_path', '')
 
-                st.markdown(f"<div class='folder-badge'>📁 outputs/{bulk_folder}/</div>", unsafe_allow_html=True)
-
+                # Summary metrics inline
                 total_videos = sum(r['success_count'] for r in results)
                 all_variations = [v for r in results for v in r['variations']]
                 avg_uniqueness = sum(v['uniqueness'] for v in all_variations) / len(all_variations) if all_variations else 0
                 safe_count = sum(1 for v in all_variations if v['uniqueness'] >= 60)
 
-                col_a, col_b, col_c = st.columns(3)
-                col_a.metric("📹 Total", total_videos)
-                col_b.metric("📊 Unicité moy.", f"{avg_uniqueness:.0f}%")
-                col_c.metric("✅ Safe (≥60%)", f"{safe_count}/{len(all_variations)}")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("📹 Total", total_videos)
+                m2.metric("📊 Moy.", f"{avg_uniqueness:.0f}%")
+                m3.metric("✅ Safe", f"{safe_count}/{len(all_variations)}")
 
                 st.markdown(LEGEND_HTML, unsafe_allow_html=True)
 
                 for r in results:
-                    with st.expander(f"📹 {r['name']} — {r['success_count']} variations"):
+                    with st.expander(f"📹 {r['name']} — {r['success_count']} var."):
                         if r['variations']:
                             for v in r['variations']:
-                                cols = st.columns([1, 3, 1, 1])
-                                cols[0].markdown(f"**{v['name']}**")
-                                cols[1].markdown(format_modifications(v.get('modifications', {})), unsafe_allow_html=True)
                                 u = v['uniqueness']
                                 badge = get_uniqueness_badge(u)
-                                cols[2].markdown(f"<span class='{badge}'>{u:.0f}%</span>", unsafe_allow_html=True)
+                                mods_html = format_modifications_compact(v.get('modifications', {}))
+                                st.markdown(f"""<div class="var-row-compact">
+                                    <span class="var-name">{v['name']}</span>
+                                    <span class="var-tags">{mods_html}</span>
+                                    <span class="var-score"><span class="{badge}">{u:.0f}%</span></span>
+                                </div>""", unsafe_allow_html=True)
                                 vpath = v.get('output_path', '')
                                 if vpath and os.path.exists(vpath):
                                     with open(vpath, "rb") as f:
-                                        cols[3].download_button("⬇️", f.read(), file_name=f"{r['name']}_{v['name']}.mp4", mime="video/mp4", key=f"dl_bulk_{r['name']}_{v['name']}")
+                                        st.download_button(f"⬇️ {v['name']}.mp4", f.read(), file_name=f"{r['name']}_{v['name']}.mp4", mime="video/mp4", key=f"dl_bulk_{r['name']}_{v['name']}")
 
-                            with st.expander("▶️ Previews", expanded=False):
-                                for v in r['variations']:
+                            with st.expander("▶️ Aperçus", expanded=False):
+                                pcols = st.columns(3)
+                                for vi, v in enumerate(r['variations']):
                                     vpath = v.get('output_path', '')
                                     if vpath and os.path.exists(vpath):
-                                        st.caption(v['name'])
-                                        st.video(vpath, format="video/mp4")
+                                        with pcols[vi % 3]:
+                                            st.caption(v['name'])
+                                            st.markdown('<div class="mini-preview">', unsafe_allow_html=True)
+                                            st.video(vpath, format="video/mp4")
+                                            st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.info("👈 Upload plusieurs vidéos et lance le traitement")
 
     # ========== TAB 3: STATS ==========
     with tab3:
-        st.markdown("### 📊 Statistiques globales")
+        st.markdown("### 📊 Statistiques")
 
         if os.path.exists(output_dir):
             all_videos = list(Path(output_dir).rglob("*.mp4"))
