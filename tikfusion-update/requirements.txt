@@ -7,3 +7,4 @@ videohash>=3.0.1
 imagehash>=4.3.1
 streamlit>=1.29.0
 tqdm>=4.66.0
+yt-dlp>=2024.1.0
