@@ -238,7 +238,7 @@ def uniquify_video_ffmpeg(input_path, output_path, intensity="medium", enabled_m
         cmd.extend(["-af", audio_filter])
 
     cmd.extend([
-        "-c:v", "libx264", "-crf", str(crf), "-preset", "medium",
+        "-c:v", "libx264", "-crf", str(crf), "-preset", "fast",
         "-g", str(gop_size), "-bf", str(bf_count),
         "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart",
