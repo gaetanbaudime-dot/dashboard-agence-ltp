@@ -1,5 +1,5 @@
 """
-TikFusion MVP — Video uniquifier anti-detection
+G&M Reposting Best Reels — Video uniquifier anti-detection
 Single | Bulk | Stats | Config
 """
 import streamlit as st
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from uniquifier import uniquify_video_ffmpeg, _find_ffmpeg, FFMPEG_BIN
 
-st.set_page_config(page_title="TikFusion x LTP", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="G&M Reposting", page_icon="logo.svg", layout="wide", initial_sidebar_state="collapsed")
 
 # ============ CSS ============
 st.markdown("""
@@ -26,57 +26,63 @@ st.markdown("""
     [data-testid="stSidebar"] { display: none; }
     * { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif; }
     .header-bar {
-        display: flex; align-items: center; justify-content: center; gap: 16px;
-        padding: 12px 0 8px 0; border-bottom: 1px solid #2C2C2E; margin-bottom: 16px;
+        display: flex; align-items: center; justify-content: center; gap: 18px;
+        padding: 16px 0 12px 0; border-bottom: 1px solid #1A2340; margin-bottom: 16px;
+        background: linear-gradient(180deg, #0B1120 0%, transparent 100%);
     }
     .header-logo {
-        background: #F5F5F7; color: #000; font-weight: 800; font-size: 1.3rem;
-        padding: 6px 14px; border-radius: 8px; letter-spacing: 2px;
+        background: linear-gradient(180deg, #E8E8EC 0%, #7A7A8C 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-weight: 800; font-size: 1.8rem; letter-spacing: 1px;
     }
-    .header-title { font-size: 2rem; font-weight: 700; color: #F5F5F7; letter-spacing: -0.5px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 0; background: #1C1C1E; border-radius: 12px; padding: 4px; }
-    .stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 8px 20px; font-weight: 500; color: #86868B !important; }
-    .stTabs [aria-selected="true"] { background: #007AFF !important; color: #FFF !important; }
+    .header-sub {
+        font-size: 0.75rem; font-weight: 400; color: #6B7394;
+        letter-spacing: 3px; text-transform: uppercase;
+    }
+    .header-title { font-size: 1.1rem; font-weight: 500; color: #8890A8; letter-spacing: -0.3px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 0; background: #0D1526; border-radius: 12px; padding: 4px; }
+    .stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 8px 20px; font-weight: 500; color: #6B7394 !important; }
+    .stTabs [aria-selected="true"] { background: linear-gradient(135deg, #4A6CF7 0%, #6366F1 100%) !important; color: #FFF !important; }
     .stTabs [data-baseweb="tab"] p, .stTabs [data-baseweb="tab"] span { color: inherit !important; }
-    .stButton > button[kind="primary"] { background: #007AFF; border: none; border-radius: 10px; font-weight: 600; }
-    .stButton > button[kind="primary"]:hover { background: #0056CC; }
-    .stDownloadButton > button { background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; font-size: 0.75rem; }
+    .stButton > button[kind="primary"] { background: linear-gradient(135deg, #4A6CF7 0%, #6366F1 100%); border: none; border-radius: 10px; font-weight: 600; }
+    .stButton > button[kind="primary"]:hover { background: linear-gradient(135deg, #3B5DE7 0%, #5356E1 100%); }
+    .stDownloadButton > button { background: #0D1526; border: 1px solid #1A2340; border-radius: 8px; font-size: 0.75rem; }
     .compact-video video { max-height: 180px !important; border-radius: 10px; }
     .tag-sm {
         display: inline-block; padding: 2px 5px; border-radius: 4px;
         font-size: 0.62rem; font-weight: 500; margin: 1px;
     }
     .tag-mirror { background: #FF453A; color: white; }
-    .tag-speed { background: #1C1C1E; color: #64D2FF; border: 1px solid #3A3A3C; }
-    .tag-hue { background: #1C1C1E; color: #FF9F0A; border: 1px solid #3A3A3C; }
-    .tag-crop { background: #1C1C1E; color: #30D158; border: 1px solid #3A3A3C; }
-    .tag-zoom { background: #1C1C1E; color: #FFD60A; border: 1px solid #3A3A3C; }
-    .tag-noise { background: #1C1C1E; color: #FF6482; border: 1px solid #3A3A3C; }
-    .tag-pitch { background: #1C1C1E; color: #5E5CE6; border: 1px solid #3A3A3C; }
-    .tag-meta { background: #1C1C1E; color: #BF5AF2; border: 1px solid #3A3A3C; }
+    .tag-speed { background: #0D1526; color: #7B8FE0; border: 1px solid #1A2340; }
+    .tag-hue { background: #0D1526; color: #FF9F0A; border: 1px solid #1A2340; }
+    .tag-crop { background: #0D1526; color: #30D158; border: 1px solid #1A2340; }
+    .tag-zoom { background: #0D1526; color: #FFD60A; border: 1px solid #1A2340; }
+    .tag-noise { background: #0D1526; color: #FF6482; border: 1px solid #1A2340; }
+    .tag-pitch { background: #0D1526; color: #5E5CE6; border: 1px solid #1A2340; }
+    .tag-meta { background: #0D1526; color: #BF5AF2; border: 1px solid #1A2340; }
     .badge-safe { background: #30D158; color: white; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
     .badge-warning { background: #FF9F0A; color: white; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
     .badge-danger { background: #FF453A; color: white; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
     .rg-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; }
-    .rg-head td { padding: 4px 10px; font-size: 0.68rem; font-weight: 600; color: #48484A; text-transform: uppercase; letter-spacing: 0.5px; }
-    .rg-row td { background: #1C1C1E; padding: 5px 10px; vertical-align: middle; }
+    .rg-head td { padding: 4px 10px; font-size: 0.68rem; font-weight: 600; color: #4A5578; text-transform: uppercase; letter-spacing: 0.5px; }
+    .rg-row td { background: #0D1526; padding: 5px 10px; vertical-align: middle; }
     .rg-row td:first-child { border-radius: 10px 0 0 10px; }
     .rg-row td:last-child { border-radius: 0 10px 10px 0; }
-    .rg-row:hover td { background: #232325; }
+    .rg-row:hover td { background: #141D33; }
     .rg-name { font-weight: 700; font-size: 0.85rem; color: #F5F5F7; white-space: nowrap; }
     .rg-tags { line-height: 1.6; }
     .rg-score { text-align: center; white-space: nowrap; }
     .rg-thumb { height: 80px; border-radius: 6px; object-fit: cover; }
     .legend {
-        background: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 8px;
-        padding: 5px 12px; font-size: 0.7rem; color: #86868B; margin-bottom: 8px;
+        background: #0D1526; border: 1px solid #1A2340; border-radius: 8px;
+        padding: 5px 12px; font-size: 0.7rem; color: #6B7394; margin-bottom: 8px;
     }
     .folder-badge {
-        background: #1C1C1E; color: #64D2FF; padding: 5px 12px; border-radius: 8px;
+        background: #0D1526; color: #7B8FE0; padding: 5px 12px; border-radius: 8px;
         font-family: 'SF Mono', monospace; font-size: 0.78rem;
-        border: 1px solid #2C2C2E; display: inline-block; margin-bottom: 6px;
+        border: 1px solid #1A2340; display: inline-block; margin-bottom: 6px;
     }
-    [data-testid="stMetric"] { background: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 12px; padding: 10px; }
+    [data-testid="stMetric"] { background: #0D1526; border: 1px solid #1A2340; border-radius: 12px; padding: 10px; }
     [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] { margin-bottom: -6px; }
     .preview-grid video { border-radius: 10px; max-height: 200px; }
 </style>
@@ -310,8 +316,11 @@ def render_results(analyses, folder, prefix):
 
 def main():
     st.markdown("""<div class="header-bar">
-        <span class="header-logo">LTP</span>
-        <span class="header-title">TikFusion</span>
+        <div style="text-align:center">
+            <span class="header-logo">G&M</span>
+            <div class="header-sub">MANAGEMENT</div>
+        </div>
+        <span class="header-title">Reposting Best Reels</span>
     </div>""", unsafe_allow_html=True)
 
     tab_single, tab_bulk, tab_stats, tab_config = st.tabs([
