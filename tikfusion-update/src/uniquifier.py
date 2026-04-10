@@ -8,6 +8,7 @@ import os
 import random
 import string
 import uuid
+import shutil
 from pathlib import Path
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,6 +18,33 @@ try:
     locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 except:
     pass
+
+FFMPEG_BIN = None
+FFPROBE_BIN = None
+
+def _find_ffmpeg():
+    global FFMPEG_BIN, FFPROBE_BIN
+    if FFMPEG_BIN:
+        return FFMPEG_BIN
+    if shutil.which("ffmpeg"):
+        FFMPEG_BIN = "ffmpeg"
+        FFPROBE_BIN = shutil.which("ffprobe") or "ffprobe"
+        return FFMPEG_BIN
+    try:
+        import imageio_ffmpeg
+        FFMPEG_BIN = imageio_ffmpeg.get_ffmpeg_exe()
+        FFPROBE_BIN = FFMPEG_BIN.replace("ffmpeg", "ffprobe") if "ffprobe" not in FFMPEG_BIN else "ffprobe"
+        return FFMPEG_BIN
+    except ImportError:
+        pass
+    for p in ["/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/homebrew/bin/ffmpeg"]:
+        if os.path.isfile(p):
+            FFMPEG_BIN = p
+            FFPROBE_BIN = p.replace("ffmpeg", "ffprobe")
+            return FFMPEG_BIN
+    FFMPEG_BIN = "ffmpeg"
+    FFPROBE_BIN = "ffprobe"
+    return FFMPEG_BIN
 
 INTENSITY_PRESETS = {
     "low": {
@@ -141,11 +169,11 @@ def uniquify_video_ffmpeg(input_path, output_path, intensity="medium", enabled_m
 
     # Zoom
     if mods["zoom"] and zoom > 1.0:
-        filters.append(f"scale=iw*{zoom}:ih*{zoom}:flags=fast_bilinear")
+        filters.append(f"scale=iw*{zoom}:ih*{zoom}:flags=lanczos")
         filters.append("crop=iw/{0}:ih/{0}".format(zoom))
 
     # Scale to output resolution — keep original if already 9:16
-    filters.append("scale=1080:1920:force_original_aspect_ratio=decrease:flags=fast_bilinear")
+    filters.append("scale=1080:1920:force_original_aspect_ratio=decrease:flags=lanczos")
     filters.append("pad=1080:1920:(ow-iw)/2:(oh-ih)/2")
 
     # FPS
@@ -171,7 +199,7 @@ def uniquify_video_ffmpeg(input_path, output_path, intensity="medium", enabled_m
     audio_filter = ",".join(audio_filters)
 
     # === ENCODING ===
-    crf = random.randint(18, 24)
+    crf = random.randint(15, 19)
     gop_size = random.choice([24, 30, 48, 60, 72])
     bf_count = random.choice([0, 1, 2, 3])
 
@@ -203,18 +231,18 @@ def uniquify_video_ffmpeg(input_path, output_path, intensity="medium", enabled_m
     }
 
     # === BUILD COMMAND ===
-    cmd = ["ffmpeg", "-y", "-threads", "2", "-i", input_path]
+    ffmpeg = _find_ffmpeg()
+    cmd = [ffmpeg, "-y", "-threads", "4", "-i", input_path]
     cmd.extend(["-vf", video_filter])
     if audio_filter:
         cmd.extend(["-af", audio_filter])
 
     cmd.extend([
-        "-c:v", "libx264", "-crf", str(crf), "-preset", "ultrafast",
-        "-tune", "fastdecode",
+        "-c:v", "libx264", "-crf", str(crf), "-preset", "medium",
         "-g", str(gop_size), "-bf", str(bf_count),
-        "-c:a", "aac", "-b:a", "96k",
+        "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart",
-        "-threads", "2",
+        "-threads", "4",
     ])
 
     # Metadata (only if enabled)
@@ -273,8 +301,7 @@ def batch_uniquify(input_path, output_dir, count=10, intensity="medium", enabled
         output_path = os.path.join(dated_dir, f"V{i+1:02d}.mp4")
         tasks.append((i, input_path, output_path, intensity, enabled_mods))
 
-    # Run in parallel — max 3 workers to avoid overloading Streamlit Cloud
-    max_workers = min(3, count)
+    max_workers = min(2, count)
     results = [None] * count
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
